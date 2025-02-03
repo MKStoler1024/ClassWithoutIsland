@@ -2,22 +2,29 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>每日课程状态系统</title>
+    <title>课程状态系统（修复全屏版）</title>
     <style>
+        /* 基础样式 */
         body {
             font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
+            margin: 0;
             padding: 20px;
             background: #f0f0f0;
         }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 状态显示框 */
         .status-box {
             background: #fff;
             border: 2px solid #ddd;
             padding: 20px;
             margin: 15px 0;
-            border-radius: 5px;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
         }
         .time-display {
             font-size: 36px;
@@ -31,196 +38,261 @@
             text-align: center;
             margin: 10px 0;
         }
+
+        /* 课程表格 */
         .schedule-table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
             background: white;
+            border: 1px solid #ddd;
         }
         .schedule-table th {
-            background: #f8f9fa;
+            background: #f8f8f8;
             padding: 12px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #ddd;
+            text-align: left;
         }
         .schedule-table td {
             padding: 12px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #ddd;
         }
         .current-class {
-            background: #e3f2fd !important;
-            font-weight: bold;
+            background-color: #e8f5e9 !important;
         }
         .future-class {
-            background: #f8f9fa !important;
+            background-color: #e3f2fd !important;
         }
         .past-class {
-            background: #f5f5f5 !important;
+            background-color: #f5f5f5 !important;
             color: #999;
         }
-        .settings-panel {
+
+        /* 全屏模式 */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: white;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 15px 0;
+            z-index: 9999;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
         }
-        .test-button {
+        .fullscreen-mode .status-box {
+            width: 100%;
+            height: 100%;
+            border: none;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .fullscreen-mode .time-display {
+            font-size: 20vw;
+            line-height: 1;
+            margin: 0;
+        }
+        .fullscreen-mode .status-label {
+            font-size: 6vw;
+            margin: 2vw 0;
+        }
+
+        /* 控制按钮 */
+        .control-bar {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+        }
+        .control-btn {
             background: #2196F3;
             color: white;
             border: none;
-            padding: 8px 16px;
-            margin: 5px;
-            border-radius: 4px;
+            padding: 8px 15px;
+            margin-left: 5px;
+            border-radius: 3px;
             cursor: pointer;
+            font-size: 14px;
         }
-        .warning-note {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 10px;
+
+        /* 设置面板 */
+        .settings-panel {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
-    <div class="status-box">
-        <div class="status-label" id="statusLabel">正在初始化...</div>
-        <div class="time-display" id="timeDisplay">--:--</div>
-        <div id="timeDescription" style="text-align:center"></div>
-    </div>
-
-    <div class="settings-panel">
-        <h3>系统设置</h3>
-        <label>
-            <input type="checkbox" id="classBell"> 启用上课铃声
-        </label>
-        <br>
-        <label>
-            <input type="checkbox" id="breakBell"> 启用下课铃声
-        </label>
-        
-        <div style="margin-top:15px">
-            <button class="test-button" onclick="testSound('classStart')">测试上课铃</button>
-            <button class="test-button" onclick="testSound('classEnd')">测试下课铃</button>
+    <div class="container">
+        <div class="control-bar">
+            <button class="control-btn" onclick="toggleFullscreen()">全屏</button>
+            <button class="control-btn" onclick="testSound('classStart')">测试上课铃</button>
+            <button class="control-btn" onclick="testSound('classEnd')">测试下课铃</button>
         </div>
-        <div class="warning-note">* 首次使用请点击页面任意位置激活声音功能</div>
-    </div>
 
-    <table class="schedule-table" id="scheduleTable">
-        <tr>
-            <th>课程名称</th>
-            <th>时间段</th>
-            <th>状态</th>
-        </tr>
-    </table>
+        <div class="status-box">
+            <div class="status-label" id="statusLabel">正在初始化...</div>
+            <div class="time-display" id="timeDisplay">--:--</div>
+            <div id="timeDescription" style="text-align:center"></div>
+        </div>
+
+        <div class="settings-panel">
+            <h3>系统设置</h3>
+            <label>
+                <input type="checkbox" id="classBell"> 启用上课铃声
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="breakBell"> 启用下课铃声
+            </label>
+        </div>
+
+        <table class="schedule-table" id="scheduleTable">
+            <tr>
+                <th>课程名称</th>
+                <th>时间段</th>
+                <th>状态</th>
+            </tr>
+        </table>
+    </div>
 
     <script>
-        // 课程时间配置（每日重复）
+        // 课程配置
         var courseSchedule = [
-            { name: "第一节课", start: "08:00", end: "08:50" },
-            { name: "第二节课", start: "09:00", end: "09:50" },
-            { name: "第三节课", start: "10:10", end: "11:00" },
-            { name: "第四节课", start: "11:10", end: "12:00" },
-            { name: "第一节课", start: "13:30", end: "14:20" },
-            { name: "第二节课", start: "14:30", end: "15:20" },
-            { name: "第三节课", start: "15:40", end: "16:30" },
-            { name: "第四节课", start: "16:40", end: "17:30" },
-            { name: "第一节课", start: "18:00", end: "18:50" },
-            { name: "第二节课", start: "19:00", end: "19:50" },
-            { name: "第三节课", start: "20:10", end: "21:00" },
-            { name: "第四节课", start: "21:10", end: "22:00" }
+            { name: "早读", start: "07:30", end: "08:00" },
+            { name: "第一节课", start: "08:10", end: "08:55" },
+            { name: "第二节课", start: "09:05", end: "09:50" },
+            { name: "课间操", start: "10:00", end: "10:30" },
+            { name: "第三节课", start: "10:40", end: "11:25" },
+            { name: "第四节课", start: "11:35", end: "12:20" }
         ];
 
-        // 音频管理系统
-        var soundManager = (function() {
-            var audio = document.createElement('audio');
-            document.body.appendChild(audio);
-            
-            return {
-                play: function(soundType) {
-                    var soundMap = {
-                        classStart: 'class_start.mp3',
-                        classEnd: 'class_end.mp3'
-                    };
-                    if (soundMap[soundType]) {
-                        audio.src = soundMap[soundType];
-                        audio.play().catch(function(e) {
-                            console.log('播放失败:', e);
-                        });
-                    }
-                }
-            };
-        })();
+        // 音频系统
+        var audioElement = document.createElement('audio');
+        document.body.appendChild(audioElement);
+        var soundFiles = {
+            classStart: 'class_start.mp3',
+            classEnd: 'class_end.mp3'
+        };
 
-        // 时间处理工具
-        function parseTime(timeString) {
+        // 全局状态
+        var isFullscreen = false;
+        var currentCourse = null;
+        var lastCourse = null;
+
+        // 时间处理
+        function parseTime(timeStr) {
             var now = new Date();
-            var timeParts = timeString.split(':');
+            var parts = timeStr.split(':');
             return new Date(
                 now.getFullYear(),
                 now.getMonth(),
                 now.getDate(),
-                parseInt(timeParts[0]),
-                parseInt(timeParts[1]),
+                parseInt(parts[0]),
+                parseInt(parts[1]),
                 0
             );
         }
 
-        // 课程状态监控器
-        var courseMonitor = {
-            currentCourse: null,
-            previousCourse: null,
-            
-            update: function() {
-                var now = new Date();
-                this.previousCourse = this.currentCourse;
-                this.currentCourse = null;
-
-                // 遍历课程表检测状态
-                for (var i = 0; i < courseSchedule.length; i++) {
-                    var course = courseSchedule[i];
-                    var start = parseTime(course.start);
-                    var end = parseTime(course.end);
-                    
-                    // 处理跨午夜情况
-                    if (end < start) end.setDate(end.getDate() + 1);
-                    
-                    if (now >= start && now <= end) {
-                        this.currentCourse = course;
-                        break;
-                    }
-                }
-                
-                // 检测状态变化
-                this.checkStateChange();
-            },
-            
-            checkStateChange: function() {
-                if (this.currentCourse !== this.previousCourse) {
-                    if (this.currentCourse) {
-                        if (localStorage.classBell === 'true') {
-                            soundManager.play('classStart');
-                        }
-                    } else {
-                        if (localStorage.breakBell === 'true') {
-                            soundManager.play('classEnd');
-                        }
-                    }
-                }
-            }
-        };
-
-        // 界面更新模块
-        function updateInterface() {
+        // 更新课程状态
+        function updateCourseStatus() {
             var now = new Date();
-            var displayElement = document.getElementById('timeDisplay');
-            var labelElement = document.getElementById('statusLabel');
-            var descElement = document.getElementById('timeDescription');
+            currentCourse = null;
 
-            // 更新课程表格状态
-            var tableRows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
-            for (var i = 0; i < tableRows.length; i++) {
+            for (var i = 0; i < courseSchedule.length; i++) {
                 var course = courseSchedule[i];
                 var start = parseTime(course.start);
                 var end = parseTime(course.end);
-                var row = tableRows[i];
+                
+                if (end < start) end.setDate(end.getDate() + 1);
+                
+                if (now >= start && now <= end) {
+                    currentCourse = course;
+                    break;
+                }
+            }
+
+            if (currentCourse !== lastCourse) {
+                handleStatusChange();
+                lastCourse = currentCourse;
+            }
+        }
+
+        // 处理状态变化
+        function handleStatusChange() {
+            if (!currentCourse && localStorage.breakBell === 'true') {
+                playSound('classEnd');
+            } else if (currentCourse && localStorage.classBell === 'true') {
+                playSound('classStart');
+            }
+        }
+
+        // 播放声音
+        function playSound(type) {
+            audioElement.src = soundFiles[type];
+            audioElement.play().catch(function(e) {
+                console.log('播放失败:', e);
+            });
+        }
+
+        // 更新界面
+        function updateDisplay() {
+            var now = new Date();
+            var timeDisplay = document.getElementById('timeDisplay');
+            var statusLabel = document.getElementById('statusLabel');
+            var timeDesc = document.getElementById('timeDescription');
+
+            if (currentCourse) {
+                var endTime = parseTime(currentCourse.end);
+                var remain = endTime - now;
+                statusLabel.textContent = currentCourse.name + ' 进行中';
+                timeDisplay.textContent = formatTime(remain);
+                timeDesc.textContent = '剩余时间';
+            } else {
+                statusLabel.textContent = '课间休息中';
+                var nextCourse = getNextCourse();
+                if (nextCourse) {
+                    var startTime = parseTime(nextCourse.start);
+                    var remain = startTime - now;
+                    timeDisplay.textContent = formatTime(remain);
+                    timeDesc.textContent = '距离 ' + nextCourse.name;
+                } else {
+                    timeDisplay.textContent = '00:00';
+                    timeDesc.textContent = '今日课程已结束';
+                }
+            }
+            updateScheduleTable();
+        }
+
+        // 格式化时间
+        function formatTime(ms) {
+            if (ms < 0) return '00:00';
+            var totalSeconds = Math.floor(ms / 1000);
+            var minutes = Math.floor(totalSeconds / 60);
+            var seconds = totalSeconds % 60;
+            return (minutes < 10 ? '0' : '') + minutes + ':' + 
+                   (seconds < 10 ? '0' : '') + seconds;
+        }
+
+        // 更新课程表
+        function updateScheduleTable() {
+            var now = new Date();
+            var rows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var course = courseSchedule[i];
+                var start = parseTime(course.start);
+                var end = parseTime(course.end);
+                var row = rows[i];
                 
                 row.className = '';
                 if (now >= start && now <= end) {
@@ -231,43 +303,61 @@
                     row.className = 'past-class';
                 }
             }
+        }
 
-            // 更新状态显示
-            if (courseMonitor.currentCourse) {
-                var endTime = parseTime(courseMonitor.currentCourse.end);
-                var remain = endTime - now;
-                labelElement.textContent = courseMonitor.currentCourse.name + ' 进行中';
-                displayElement.textContent = formatTime(remain);
-                descElement.textContent = '剩余时间';
+        // 获取下一节课
+        function getNextCourse() {
+            var now = new Date();
+            for (var i = 0; i < courseSchedule.length; i++) {
+                var start = parseTime(courseSchedule[i].start);
+                if (start > now) return courseSchedule[i];
+            }
+            return null;
+        }
+
+        // 全屏切换
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            document.body.classList.toggle('fullscreen-mode', isFullscreen);
+            
+            // 兼容处理
+            if (isFullscreen) {
+                document.querySelector('.settings-panel').style.display = 'none';
+                document.querySelector('.schedule-table').style.display = 'none';
+                adjustFullscreenLayout();
             } else {
-                labelElement.textContent = '课间休息时间';
-                var nextCourse = courseSchedule.find(function(c) {
-                    return parseTime(c.start) > now;
-                });
-                if (nextCourse) {
-                    var startTime = parseTime(nextCourse.start);
-                    var remain = startTime - now;
-                    displayElement.textContent = formatTime(remain);
-                    descElement.textContent = '距离 ' + nextCourse.name;
-                } else {
-                    displayElement.textContent = '00:00';
-                    descElement.textContent = '今日课程已结束';
-                }
+                document.querySelector('.settings-panel').style.display = '';
+                document.querySelector('.schedule-table').style.display = '';
             }
         }
 
-        // 辅助函数：格式化时间显示
-        function formatTime(ms) {
-            if (ms < 0) return '00:00';
-            var totalSeconds = Math.floor(ms / 1000);
-            var minutes = Math.floor(totalSeconds / 60);
-            var seconds = totalSeconds % 60;
-            return (minutes < 10 ? '0' : '') + minutes + ':' + 
-                   (seconds < 10 ? '0' : '') + seconds;
+        // 全屏布局适配
+        function adjustFullscreenLayout() {
+            var container = document.querySelector('.status-box');
+            var timeDisplay = document.getElementById('timeDisplay');
+            
+            // 传统浏览器适配
+            var baseSize = Math.min(window.innerWidth, window.innerHeight) * 0.15;
+            timeDisplay.style.fontSize = baseSize + 'px';
+            timeDisplay.style.lineHeight = '1';
         }
 
-        // 初始化函数
-        function initialize() {
+        // 窗口大小变化监听
+        window.onresize = function() {
+            if (isFullscreen) {
+                adjustFullscreenLayout();
+            }
+        };
+
+        // 测试铃声
+        function testSound(type) {
+            if (confirm('确定要测试' + (type === 'classStart' ? '上课' : '下课') + '铃声吗？')) {
+                playSound(type);
+            }
+        }
+
+        // 初始化
+        function init() {
             // 初始化课程表
             var table = document.getElementById('scheduleTable');
             courseSchedule.forEach(function(course) {
@@ -288,31 +378,24 @@
                 localStorage.breakBell = this.checked;
             };
 
-            // 解决自动播放限制
+            // 启动更新
+            setInterval(function() {
+                updateCourseStatus();
+                updateDisplay();
+            }, 1000);
+            updateCourseStatus();
+            updateDisplay();
+
+            // 激活音频权限
             document.body.onclick = function() {
-                soundManager.play('classStart');
-                soundManager.play('classEnd');
+                audioElement.play().then(function() {
+                    audioElement.pause();
+                });
                 this.onclick = null;
             };
-
-            // 启动定时更新
-            setInterval(function() {
-                courseMonitor.update();
-                updateInterface();
-            }, 1000);
-            courseMonitor.update();
-            updateInterface();
         }
 
-        // 测试声音功能
-        function testSound(type) {
-            if (confirm('确定要测试' + (type === 'classStart' ? '上课' : '下课') + '铃声吗？')) {
-                soundManager.play(type);
-            }
-        }
-
-        // 启动系统
-        initialize();
+        init();
     </script>
 </body>
 </html>
