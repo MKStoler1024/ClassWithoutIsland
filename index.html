@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>课程状态系统（全屏版）</title>
+    <title>课程状态系统完整版</title>
     <style>
         /* 基础样式 */
         body {
@@ -10,28 +10,26 @@
             margin: 0;
             padding: 20px;
             background: #f0f0f0;
-            transition: all 0.3s;
         }
         .container {
             max-width: 600px;
             margin: 0 auto;
         }
 
-        /* 状态框样式 */
+        /* 状态显示框 */
         .status-box {
             background: #fff;
             border: 2px solid #ddd;
-            padding: 30px;
+            padding: 20px;
             margin: 15px 0;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .time-display {
             font-size: 36px;
             color: #2c3e50;
             font-weight: bold;
-            margin: 20px 0;
+            margin: 10px 0;
             text-align: center;
         }
         .status-label {
@@ -40,7 +38,36 @@
             margin: 10px 0;
         }
 
-        /* 全屏模式样式 */
+        /* 课程表格 */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border: 1px solid #ddd;
+        }
+        .schedule-table th {
+            background: #f8f8f8;
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .schedule-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        .current-class {
+            background-color: #e8f5e9 !important;
+        }
+        .future-class {
+            background-color: #e3f2fd !important;
+        }
+        .past-class {
+            background-color: #f5f5f5 !important;
+            color: #999;
+        }
+
+        /* 全屏模式 */
         .fullscreen-mode {
             position: fixed;
             top: 0;
@@ -58,17 +85,21 @@
             border: none;
             box-shadow: none;
             border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            padding: 20px;
+            display: table;
         }
         .fullscreen-mode .time-display {
-            font-size: 72px;
-            margin: 30px 0;
+            font-size: 15vw;
+            line-height: 1.2;
+            display: table-cell;
+            vertical-align: middle;
         }
         .fullscreen-mode .status-label {
-            font-size: 36px;
+            font-size: 6vw;
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
         }
 
         /* 控制按钮 */
@@ -86,16 +117,16 @@
             margin-left: 5px;
             border-radius: 3px;
             cursor: pointer;
+            font-size: 14px;
         }
 
-        /* 其他元素样式 */
-        .settings-panel,
-        .schedule-table {
-            transition: opacity 0.3s;
-        }
-        .fullscreen-mode .settings-panel,
-        .fullscreen-mode .schedule-table {
-            display: none;
+        /* 设置面板 */
+        .settings-panel {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
@@ -150,7 +181,7 @@
             { name: "第四节课", start: "21:10", end: "22:00" }
         ];
 
-        // 音频管理
+        // 音频系统
         var audioElement = document.createElement('audio');
         document.body.appendChild(audioElement);
         var soundFiles = {
@@ -158,10 +189,12 @@
             classEnd: 'class_end.mp3'
         };
 
-        // 全屏状态
+        // 全局状态
         var isFullscreen = false;
+        var currentCourse = null;
+        var lastCourse = null;
 
-        // 时间处理函数
+        // 时间处理
         function parseTime(timeStr) {
             var now = new Date();
             var parts = timeStr.split(':');
@@ -175,10 +208,7 @@
             );
         }
 
-        // 课程状态跟踪
-        var currentCourse = null;
-        var lastCourse = null;
-
+        // 更新课程状态
         function updateCourseStatus() {
             var now = new Date();
             currentCourse = null;
@@ -202,6 +232,7 @@
             }
         }
 
+        // 处理状态变化
         function handleStatusChange() {
             if (!currentCourse && localStorage.breakBell === 'true') {
                 playSound('classEnd');
@@ -210,6 +241,7 @@
             }
         }
 
+        // 播放声音
         function playSound(type) {
             audioElement.src = soundFiles[type];
             audioElement.play().catch(function(e) {
@@ -217,7 +249,7 @@
             });
         }
 
-        // 界面更新
+        // 更新界面
         function updateDisplay() {
             var now = new Date();
             var timeDisplay = document.getElementById('timeDisplay');
@@ -246,6 +278,7 @@
             updateScheduleTable();
         }
 
+        // 格式化时间
         function formatTime(ms) {
             if (ms < 0) return '00:00';
             var totalSeconds = Math.floor(ms / 1000);
@@ -255,6 +288,7 @@
                    (seconds < 10 ? '0' : '') + seconds;
         }
 
+        // 更新课程表
         function updateScheduleTable() {
             var now = new Date();
             var rows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
@@ -276,6 +310,7 @@
             }
         }
 
+        // 获取下一节课
         function getNextCourse() {
             var now = new Date();
             for (var i = 0; i < courseSchedule.length; i++) {
@@ -285,10 +320,19 @@
             return null;
         }
 
-        // 全屏功能
+        // 全屏切换
         function toggleFullscreen() {
             isFullscreen = !isFullscreen;
             document.body.classList.toggle('fullscreen-mode', isFullscreen);
+            
+            // 传统浏览器适配
+            if (isFullscreen) {
+                document.querySelector('.settings-panel').style.display = 'none';
+                document.querySelector('.schedule-table').style.display = 'none';
+            } else {
+                document.querySelector('.settings-panel').style.display = '';
+                document.querySelector('.schedule-table').style.display = '';
+            }
         }
 
         // 测试铃声
@@ -320,7 +364,7 @@
                 localStorage.breakBell = this.checked;
             };
 
-            // 启动更新循环
+            // 启动更新
             setInterval(function() {
                 updateCourseStatus();
                 updateDisplay();
