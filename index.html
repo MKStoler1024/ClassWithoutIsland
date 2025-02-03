@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>课程状态</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .status-box {
+            background: #fff;
+            border: 2px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .current-status {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .time-left {
+            font-size: 18px;
+            color: #666;
+        }
+        .settings {
+            margin: 20px 0;
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        .schedule-table td, .schedule-table th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .highlight {
+            background-color: #e6f3ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-box">
+        <div class="current-status" id="statusText">状态检测中...</div>
+        <div class="time-left" id="timeLeft"></div>
+    </div>
+
+    <div class="settings">
+        <label>
+            <input type="checkbox" id="classBell"> 上课播放铃声
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" id="breakBell"> 下课播放铃声
+        </label>
+    </div>
+
+    <table class="schedule-table" id="scheduleTable">
+        <tr>
+            <th>课程名称</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+        </tr>
+    </table>
+
+    <script>
+        // 课程配置
+        var schedule = [
+            { name: "上课", start: "2025-02-04T08:00", end: "2025-02-04T08:50" },
+            { name: "上课", start: "2025-02-04T09:00", end: "2025-02-04T09:50" },
+            { name: "上课", start: "2025-02-04T10:10", end: "2025-02-04T11:00" },
+            { name: "上课", start: "2025-02-04T11:10", end: "2025-02-04T12:00" }
+        ];
+
+        // 解析日期时间（兼容老浏览器）
+        function parseDateTime(datetimeStr) {
+            var parts = datetimeStr.split(/[-T:]/);
+            return new Date(
+                parts[0], parts[1]-1, parts[2],
+                parts[3], parts[4], 0
+            );
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            var now = new Date();
+            var currentClass = null;
+            var nextClass = null;
+            
+            // 查找当前课程和下一个课程
+            for (var i = 0; i < schedule.length; i++) {
+                var start = parseDateTime(schedule[i].start);
+                var end = parseDateTime(schedule[i].end);
+                
+                if (now >= start && now <= end) {
+                    currentClass = schedule[i];
+                    break;
+                }
+                if (now < start) {
+                    nextClass = schedule[i];
+                    break;
+                }
+            }
+
+            // 更新状态显示
+            var statusText = document.getElementById('statusText');
+            var timeLeft = document.getElementById('timeLeft');
+            
+            if (currentClass) {
+                statusText.innerHTML = "上课中 🎒";
+                statusText.style.color = "#c00";
+                var remain = parseDateTime(currentClass.end) - now;
+                timeLeft.innerHTML = formatTime(remain);
+            } else if (nextClass) {
+                statusText.innerHTML = "下课中 🕒";
+                statusText.style.color = "#090";
+                var remain = parseDateTime(nextClass.start) - now;
+                timeLeft.innerHTML = "距离上课：" + formatTime(remain);
+            } else {
+                statusText.innerHTML = "今日课程已结束 🎉";
+                timeLeft.innerHTML = "";
+            }
+        }
+
+        // 格式化剩余时间
+        function formatTime(milliseconds) {
+            var seconds = Math.floor(milliseconds / 1000);
+            var minutes = Math.floor(seconds / 60);
+            seconds = seconds % 60;
+            return minutes + "分" + (seconds < 10 ? "0" : "") + seconds + "秒";
+        }
+
+        // 初始化课程表
+        function initSchedule() {
+            var table = document.getElementById('scheduleTable');
+            schedule.forEach(function(cls) {
+                var row = table.insertRow(-1);
+                row.innerHTML = '<td>' + cls.name + '</td>' +
+                                '<td>' + cls.start.split('T')[1] + '</td>' +
+                                '<td>' + cls.end.split('T')[1] + '</td>';
+            });
+        }
+
+        // 初始化设置
+        function initSettings() {
+            document.getElementById('classBell').checked = 
+                localStorage.getItem('classBell') !== 'false';
+            document.getElementById('breakBell').checked = 
+                localStorage.getItem('breakBell') !== 'false';
+
+            document.getElementById('classBell').onchange = function() {
+                localStorage.setItem('classBell', this.checked);
+            };
+            document.getElementById('breakBell').onchange = function() {
+                localStorage.setItem('breakBell', this.checked);
+            };
+        }
+
+        // 初始化
+        function init() {
+            initSchedule();
+            initSettings();
+            setInterval(updateStatus, 1000);
+            updateStatus();
+        }
+
+        init();
+    </script>
+</body>
+</html>
