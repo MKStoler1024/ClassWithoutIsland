@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>课程状态系统（修复全屏版）</title>
+    <title>课程状态系统完整版</title>
     <style>
         /* 基础样式 */
         body {
@@ -14,6 +14,7 @@
         .container {
             max-width: 600px;
             margin: 0 auto;
+            position: relative;
         }
 
         /* 状态显示框 */
@@ -24,7 +25,6 @@
             margin: 15px 0;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
         }
         .time-display {
             font-size: 36px;
@@ -88,19 +88,13 @@
             box-shadow: none;
             border-radius: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            display: table;
         }
         .fullscreen-mode .time-display {
             font-size: 20vw;
             line-height: 1;
-            margin: 0;
-        }
-        .fullscreen-mode .status-label {
-            font-size: 6vw;
-            margin: 2vw 0;
+            display: table-cell;
+            vertical-align: middle;
         }
 
         /* 控制按钮 */
@@ -121,17 +115,31 @@
             font-size: 14px;
         }
 
-        /* 设置面板 */
-        .settings-panel {
-            background: white;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
+        /* 错误提示 */
+        .error-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffebee;
+            color: #b71c1c;
+            padding: 10px;
+            border-top: 2px solid #ffcdd2;
+            display: none;
+            z-index: 10001;
+        }
+        .error-content {
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
+    <div class="error-container">
+        <div class="error-content" id="errorMessage"></div>
+    </div>
+
     <div class="container">
         <div class="control-bar">
             <button class="control-btn" onclick="toggleFullscreen()">全屏</button>
@@ -166,241 +174,331 @@
     </div>
 
     <script>
+        // 错误处理系统
+        var errorSystem = {
+            show: function(message) {
+                try {
+                    var container = document.querySelector('.error-container');
+                    var content = document.getElementById('errorMessage');
+                    content.textContent = message;
+                    container.style.display = 'block';
+                    setTimeout(this.hide, 5000);
+                } catch(e) {
+                    console.error('错误提示系统异常:', e);
+                }
+            },
+            hide: function() {
+                document.querySelector('.error-container').style.display = 'none';
+            }
+        };
+
         // 课程配置
         var courseSchedule = [
-            { name: "第一节课", start: "08:00", end: "08:50" },
-            { name: "第二节课", start: "09:00", end: "09:50" },
-            { name: "第三节课", start: "10:10", end: "11:00" },
-            { name: "第四节课", start: "11:10", end: "12:00" },
-            { name: "第一节课", start: "13:30", end: "14:20" },
-            { name: "第二节课", start: "14:30", end: "15:20" },
-            { name: "第三节课", start: "15:40", end: "16:30" },
-            { name: "第四节课", start: "16:40", end: "17:30" },
-            { name: "第一节课", start: "18:00", end: "18:50" },
-            { name: "第二节课", start: "19:00", end: "19:50" },
-            { name: "第三节课", start: "20:10", end: "21:00" },
-            { name: "第四节课", start: "21:10", end: "22:00" }
+            { name: "早读", start: "07:30", end: "08:00" },
+            { name: "第一节课", start: "08:10", end: "08:55" },
+            { name: "第二节课", start: "09:05", end: "09:50" },
+            { name: "课间操", start: "10:00", end: "10:30" },
+            { name: "第三节课", start: "10:40", end: "11:25" },
+            { name: "第四节课", start: "11:35", end: "12:20" }
         ];
 
-        // 音频系统
-        var audioElement = document.createElement('audio');
-        document.body.appendChild(audioElement);
-        var soundFiles = {
-            classStart: 'class_start.mp3',
-            classEnd: 'class_end.mp3'
+        // 音频系统（兼容Android 4.4）
+        var audioContext = {
+            elements: [],
+            maxPool: 2,
+            init: function() {
+                try {
+                    for(var i = 0; i < this.maxPool; i++) {
+                        var audio = document.createElement('audio');
+                        document.body.appendChild(audio);
+                        this.elements.push(audio);
+                    }
+                } catch(e) {
+                    errorSystem.show('音频初始化失败: ' + e.message);
+                }
+            },
+            play: function(type) {
+                try {
+                    var audio = this.getAvailableAudio();
+                    if(!audio) return;
+                    
+                    audio.src = {
+                        classStart: 'class_start.mp3',
+                        classEnd: 'class_end.mp3'
+                    }[type];
+                    
+                    // 异步播放防止阻塞
+                    setTimeout(function() {
+                        try {
+                            audio.play().catch(function(e) {
+                                errorSystem.show('播放被阻止: ' + e.message);
+                            });
+                        } catch(e) {
+                            errorSystem.show('播放错误: ' + e.message);
+                        }
+                    }, 0);
+                } catch(e) {
+                    errorSystem.show('音频系统错误: ' + e.message);
+                }
+            },
+            getAvailableAudio: function() {
+                return this.elements.find(function(audio) {
+                    return audio.paused || audio.ended;
+                });
+            }
         };
+        audioContext.init();
 
         // 全局状态
         var isFullscreen = false;
         var currentCourse = null;
         var lastCourse = null;
+        var timer = null;
+        var lastUpdate = Date.now();
 
-        // 时间处理
+        // 安全更新循环
+        function safeUpdate() {
+            try {
+                var now = Date.now();
+                var delta = now - lastUpdate;
+                
+                updateCourseStatus();
+                updateDisplay();
+                
+                var nextTick = Math.max(1000 - (Date.now() - now), 50);
+                timer = setTimeout(safeUpdate, nextTick);
+                lastUpdate = now;
+            } catch(e) {
+                errorSystem.show('更新循环错误: ' + e.message);
+            }
+        }
+
+        // 时间处理函数
         function parseTime(timeStr) {
-            var now = new Date();
-            var parts = timeStr.split(':');
-            return new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate(),
-                parseInt(parts[0]),
-                parseInt(parts[1]),
-                0
-            );
+            try {
+                var now = new Date();
+                var parts = timeStr.split(':');
+                return new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    parseInt(parts[0]),
+                    parseInt(parts[1]),
+                    0
+                );
+            } catch(e) {
+                errorSystem.show('时间解析错误: ' + e.message);
+                return new Date();
+            }
         }
 
-        // 更新课程状态
+        // 课程状态管理
         function updateCourseStatus() {
-            var now = new Date();
-            currentCourse = null;
+            try {
+                var now = new Date();
+                currentCourse = null;
 
-            for (var i = 0; i < courseSchedule.length; i++) {
-                var course = courseSchedule[i];
-                var start = parseTime(course.start);
-                var end = parseTime(course.end);
-                
-                if (end < start) end.setDate(end.getDate() + 1);
-                
-                if (now >= start && now <= end) {
-                    currentCourse = course;
-                    break;
+                for (var i = 0; i < courseSchedule.length; i++) {
+                    var course = courseSchedule[i];
+                    var start = parseTime(course.start);
+                    var end = parseTime(course.end);
+                    
+                    // 处理跨午夜情况
+                    if (end < start) end.setDate(end.getDate() + 1);
+                    
+                    if (now >= start && now <= end) {
+                        currentCourse = course;
+                        break;
+                    }
                 }
-            }
 
-            if (currentCourse !== lastCourse) {
-                handleStatusChange();
-                lastCourse = currentCourse;
+                if (currentCourse !== lastCourse) {
+                    handleStatusChange();
+                    lastCourse = currentCourse;
+                }
+            } catch(e) {
+                errorSystem.show('课程状态更新失败: ' + e.message);
             }
         }
 
-        // 处理状态变化
+        // 状态变化处理
         function handleStatusChange() {
-            if (!currentCourse && localStorage.breakBell === 'true') {
-                playSound('classEnd');
-            } else if (currentCourse && localStorage.classBell === 'true') {
-                playSound('classStart');
+            try {
+                if (!currentCourse && localStorage.breakBell === 'true') {
+                    audioContext.play('classEnd');
+                } else if (currentCourse && localStorage.classBell === 'true') {
+                    audioContext.play('classStart');
+                }
+            } catch(e) {
+                errorSystem.show('状态变化处理错误: ' + e.message);
             }
         }
 
-        // 播放声音
-        function playSound(type) {
-            audioElement.src = soundFiles[type];
-            audioElement.play().catch(function(e) {
-                console.log('播放失败:', e);
-            });
-        }
-
-        // 更新界面
+        // 界面更新
         function updateDisplay() {
-            var now = new Date();
-            var timeDisplay = document.getElementById('timeDisplay');
-            var statusLabel = document.getElementById('statusLabel');
-            var timeDesc = document.getElementById('timeDescription');
+            try {
+                var now = new Date();
+                var timeDisplay = document.getElementById('timeDisplay');
+                var statusLabel = document.getElementById('statusLabel');
+                var timeDesc = document.getElementById('timeDescription');
 
-            if (currentCourse) {
-                var endTime = parseTime(currentCourse.end);
-                var remain = endTime - now;
-                statusLabel.textContent = currentCourse.name + ' 进行中';
-                timeDisplay.textContent = formatTime(remain);
-                timeDesc.textContent = '剩余时间';
-            } else {
-                statusLabel.textContent = '课间休息中';
-                var nextCourse = getNextCourse();
-                if (nextCourse) {
-                    var startTime = parseTime(nextCourse.start);
-                    var remain = startTime - now;
+                if (currentCourse) {
+                    var endTime = parseTime(currentCourse.end);
+                    var remain = endTime - now;
+                    statusLabel.textContent = currentCourse.name + ' 进行中';
                     timeDisplay.textContent = formatTime(remain);
-                    timeDesc.textContent = '距离 ' + nextCourse.name;
+                    timeDesc.textContent = '剩余时间';
                 } else {
-                    timeDisplay.textContent = '00:00';
-                    timeDesc.textContent = '今日课程已结束';
+                    statusLabel.textContent = '课间休息中';
+                    var nextCourse = getNextCourse();
+                    if (nextCourse) {
+                        var startTime = parseTime(nextCourse.start);
+                        var remain = startTime - now;
+                        timeDisplay.textContent = formatTime(remain);
+                        timeDesc.textContent = '距离 ' + nextCourse.name;
+                    } else {
+                        timeDisplay.textContent = '00:00';
+                        timeDesc.textContent = '今日课程已结束';
+                    }
                 }
+                updateScheduleTable();
+            } catch(e) {
+                errorSystem.show('界面更新失败: ' + e.message);
             }
-            updateScheduleTable();
         }
 
-        // 格式化时间
+        // 格式化时间显示
         function formatTime(ms) {
-            if (ms < 0) return '00:00';
-            var totalSeconds = Math.floor(ms / 1000);
-            var minutes = Math.floor(totalSeconds / 60);
-            var seconds = totalSeconds % 60;
-            return (minutes < 10 ? '0' : '') + minutes + ':' + 
-                   (seconds < 10 ? '0' : '') + seconds;
+            try {
+                if (ms < 0) return '00:00';
+                var totalSeconds = Math.floor(ms / 1000);
+                var minutes = Math.floor(totalSeconds / 60);
+                var seconds = totalSeconds % 60;
+                return (minutes < 10 ? '0' : '') + minutes + ':' + 
+                       (seconds < 10 ? '0' : '') + seconds;
+            } catch(e) {
+                return '--:--';
+            }
         }
 
-        // 更新课程表
+        // 更新课程表状态
         function updateScheduleTable() {
-            var now = new Date();
-            var rows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
-            
-            for (var i = 0; i < rows.length; i++) {
-                var course = courseSchedule[i];
-                var start = parseTime(course.start);
-                var end = parseTime(course.end);
-                var row = rows[i];
+            try {
+                var now = new Date();
+                var rows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
                 
-                row.className = '';
-                if (now >= start && now <= end) {
-                    row.className = 'current-class';
-                } else if (now < start) {
-                    row.className = 'future-class';
-                } else {
-                    row.className = 'past-class';
+                for (var i = 0; i < rows.length; i++) {
+                    var course = courseSchedule[i];
+                    var start = parseTime(course.start);
+                    var end = parseTime(course.end);
+                    var row = rows[i];
+                    
+                    row.className = '';
+                    if (now >= start && now <= end) {
+                        row.className = 'current-class';
+                    } else if (now < start) {
+                        row.className = 'future-class';
+                    } else {
+                        row.className = 'past-class';
+                    }
                 }
+            } catch(e) {
+                errorSystem.show('课程表更新失败: ' + e.message);
             }
         }
 
         // 获取下一节课
         function getNextCourse() {
-            var now = new Date();
-            for (var i = 0; i < courseSchedule.length; i++) {
-                var start = parseTime(courseSchedule[i].start);
-                if (start > now) return courseSchedule[i];
+            try {
+                var now = new Date();
+                for (var i = 0; i < courseSchedule.length; i++) {
+                    var start = parseTime(courseSchedule[i].start);
+                    if (start > now) return courseSchedule[i];
+                }
+                return null;
+            } catch(e) {
+                errorSystem.show('获取下一节课失败: ' + e.message);
+                return null;
             }
-            return null;
         }
 
-        // 全屏切换
+        // 全屏切换功能
         function toggleFullscreen() {
-            isFullscreen = !isFullscreen;
-            document.body.classList.toggle('fullscreen-mode', isFullscreen);
-            
-            // 兼容处理
-            if (isFullscreen) {
-                document.querySelector('.settings-panel').style.display = 'none';
-                document.querySelector('.schedule-table').style.display = 'none';
-                adjustFullscreenLayout();
-            } else {
-                document.querySelector('.settings-panel').style.display = '';
-                document.querySelector('.schedule-table').style.display = '';
+            try {
+                isFullscreen = !isFullscreen;
+                document.body.classList.toggle('fullscreen-mode', isFullscreen);
+                
+                if (isFullscreen) {
+                    document.querySelector('.settings-panel').style.display = 'none';
+                    document.querySelector('.schedule-table').style.display = 'none';
+                } else {
+                    document.querySelector('.settings-panel').style.display = '';
+                    document.querySelector('.schedule-table').style.display = '';
+                }
+            } catch(e) {
+                errorSystem.show('全屏切换失败: ' + e.message);
             }
         }
-
-        // 全屏布局适配
-        function adjustFullscreenLayout() {
-            var container = document.querySelector('.status-box');
-            var timeDisplay = document.getElementById('timeDisplay');
-            
-            // 传统浏览器适配
-            var baseSize = Math.min(window.innerWidth, window.innerHeight) * 0.15;
-            timeDisplay.style.fontSize = baseSize + 'px';
-            timeDisplay.style.lineHeight = '1';
-        }
-
-        // 窗口大小变化监听
-        window.onresize = function() {
-            if (isFullscreen) {
-                adjustFullscreenLayout();
-            }
-        };
 
         // 测试铃声
         function testSound(type) {
-            if (confirm('确定要测试' + (type === 'classStart' ? '上课' : '下课') + '铃声吗？')) {
-                playSound(type);
+            try {
+                if (confirm('确定要测试' + (type === 'classStart' ? '上课' : '下课') + '铃声吗？')) {
+                    audioContext.play(type);
+                }
+            } catch(e) {
+                errorSystem.show('测试铃声失败: ' + e.message);
             }
         }
 
-        // 初始化
+        // 系统初始化
         function init() {
-            // 初始化课程表
-            var table = document.getElementById('scheduleTable');
-            courseSchedule.forEach(function(course) {
-                var row = table.insertRow(-1);
-                row.innerHTML = '<td>' + course.name + '</td>' +
-                                '<td>' + course.start + ' - ' + course.end + '</td>' +
-                                '<td></td>';
-            });
-
-            // 初始化设置
-            document.getElementById('classBell').checked = localStorage.classBell === 'true';
-            document.getElementById('breakBell').checked = localStorage.breakBell === 'true';
-            
-            document.getElementById('classBell').onchange = function() {
-                localStorage.classBell = this.checked;
-            };
-            document.getElementById('breakBell').onchange = function() {
-                localStorage.breakBell = this.checked;
-            };
-
-            // 启动更新
-            setInterval(function() {
-                updateCourseStatus();
-                updateDisplay();
-            }, 1000);
-            updateCourseStatus();
-            updateDisplay();
-
-            // 激活音频权限
-            document.body.onclick = function() {
-                audioElement.play().then(function() {
-                    audioElement.pause();
+            try {
+                // 初始化课程表
+                var table = document.getElementById('scheduleTable');
+                courseSchedule.forEach(function(course) {
+                    var row = table.insertRow(-1);
+                    row.innerHTML = '<td>' + course.name + '</td>' +
+                                    '<td>' + course.start + ' - ' + course.end + '</td>' +
+                                    '<td></td>';
                 });
-                this.onclick = null;
-            };
+
+                // 初始化设置
+                document.getElementById('classBell').checked = localStorage.classBell === 'true';
+                document.getElementById('breakBell').checked = localStorage.breakBell === 'true';
+                
+                document.getElementById('classBell').onchange = function() {
+                    localStorage.classBell = this.checked;
+                };
+                document.getElementById('breakBell').onchange = function() {
+                    localStorage.breakBell = this.checked;
+                };
+
+                // 启动安全更新循环
+                safeUpdate();
+
+                // 激活音频权限
+                document.body.onclick = function() {
+                    try {
+                        audioContext.elements[0].play().then(function() {
+                            audioContext.elements[0].pause();
+                        });
+                    } catch(e) {
+                        errorSystem.show('需要点击页面激活音频权限');
+                    }
+                    this.onclick = null;
+                };
+            } catch(e) {
+                errorSystem.show('系统初始化失败: ' + e.message);
+            }
         }
 
+        // 清理定时器
+        window.onbeforeunload = function() {
+            if(timer) clearTimeout(timer);
+        };
+
+        // 启动系统
         init();
     </script>
 </body>
