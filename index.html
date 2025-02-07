@@ -140,6 +140,8 @@
             font-size: 14px;
         }
     </style>
+    <!-- 在页面头部添加ES5兼容垫片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.15/es5-shim.min.js"></script>
 </head>
 <body>
     <div class="error-container">
@@ -215,50 +217,56 @@
         ];
 
         // 音频系统（兼容Android 4.4）
-        var audioContext = {
-            elements: [],
-            maxPool: 2,
-            init: function() {
-                try {
-                    for(var i = 0; i < this.maxPool; i++) {
-                        var audio = document.createElement('audio');
-                        document.body.appendChild(audio);
-                        this.elements.push(audio);
-                    }
-                } catch(e) {
-                    errorSystem.show('音频初始化失败: ' + e.message);
-                }
-            },
-            play: function(type) {
-                try {
-                    var audio = this.getAvailableAudio();
-                    if(!audio) return;
-                    
-                    audio.src = {
-                        classStart: 'class_start.mp3',
-                        classEnd: 'class_end.mp3'
-                    }[type];
-                    
-                    // 异步播放防止阻塞
-                    setTimeout(function() {
-                        try {
-                            audio.play().catch(function(e) {
-                                errorSystem.show('播放被阻止: ' + e.message);
-                            });
-                        } catch(e) {
-                            errorSystem.show('播放错误: ' + e.message);
-                        }
-                    }, 0);
-                } catch(e) {
-                    errorSystem.show('音频系统错误: ' + e.message);
-                }
-            },
-            getAvailableAudio: function() {
-                return this.elements.find(function(audio) {
-                    return audio.paused || audio.ended;
-                });
+        // 音频系统（兼容Android 4.4）
+var audioContext = {
+    elements: [],
+    maxPool: 2,
+    init: function() {
+        try {
+            for(var i = 0; i < this.maxPool; i++) {
+                var audio = document.createElement('audio');
+                document.body.appendChild(audio);
+                this.elements.push(audio);
             }
-        };
+        } catch(e) {
+            errorSystem.show('音频初始化失败: ' + e.message);
+        }
+    },
+    play: function(type) {
+        try {
+            var audio = this.getAvailableAudio();
+            if(!audio) return;
+            
+            audio.src = {
+                classStart: 'class_start.mp3',
+                classEnd: 'class_end.mp3'
+            }[type];
+            
+            // 异步播放防止阻塞
+            setTimeout(function() {
+                try {
+                    audio.play().catch(function(e) {
+                        errorSystem.show('播放被阻止: ' + e.message);
+                    });
+                } catch(e) {
+                    errorSystem.show('播放错误: ' + e.message);
+                }
+            }, 0);
+        } catch(e) {
+            errorSystem.show('音频系统错误: ' + e.message);
+        }
+    },
+    getAvailableAudio: function() {
+        // ==== 修改开始 ====
+        for (var i = 0; i < this.elements.length; i++) {
+            if (this.elements[i].paused || this.elements[i].ended) {
+                return this.elements[i];
+            }
+        }
+        return null;
+        // ==== 修改结束 ====
+    }
+};
         audioContext.init();
 
         // 全局状态
