@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>课程状态系统完整版</title>
@@ -11,6 +12,7 @@
             padding: 20px;
             background: #f0f0f0;
         }
+
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -24,8 +26,9 @@
             padding: 20px;
             margin: 15px 0;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .time-display {
             font-size: 36px;
             color: #2c3e50;
@@ -33,6 +36,7 @@
             margin: 10px 0;
             text-align: center;
         }
+
         .status-label {
             font-size: 24px;
             text-align: center;
@@ -47,22 +51,27 @@
             background: white;
             border: 1px solid #ddd;
         }
+
         .schedule-table th {
             background: #f8f8f8;
             padding: 12px;
             border: 1px solid #ddd;
             text-align: left;
         }
+
         .schedule-table td {
             padding: 12px;
             border: 1px solid #ddd;
         }
+
         .current-class {
             background-color: #e8f5e9 !important;
         }
+
         .future-class {
             background-color: #e3f2fd !important;
         }
+
         .past-class {
             background-color: #f5f5f5 !important;
             color: #999;
@@ -81,6 +90,7 @@
             margin: 0;
             overflow: hidden;
         }
+
         .fullscreen-mode .status-box {
             width: 100%;
             height: 100%;
@@ -90,17 +100,29 @@
             padding: 0;
             display: table;
         }
+
         .fullscreen-mode .time-display {
             font-size: 20vw;
             line-height: 1;
             display: table-cell;
             vertical-align: middle;
         }
+
         .fullscreen-mode .container {
             width: 100%;
             height: 100%;
             padding: 0;
             margin: 0;
+        }
+
+        .fullscreen-mode .settings-panel,
+        .fullscreen-mode .schedule-table {
+            display: none;
+        }
+
+        .fullscreen-mode .container {
+            width: 100% !important;
+            height: 100% !important;
         }
 
         /* 控制按钮 */
@@ -110,6 +132,7 @@
             right: 10px;
             z-index: 10000;
         }
+
         .control-btn {
             background: #2196F3;
             color: white;
@@ -134,6 +157,7 @@
             display: none;
             z-index: 10001;
         }
+
         .error-content {
             max-width: 600px;
             margin: 0 auto;
@@ -143,6 +167,7 @@
     <!-- 在页面头部添加ES5兼容垫片 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.15/es5-shim.min.js"></script>
 </head>
+
 <body>
     <div class="error-container">
         <div class="error-content" id="errorMessage"></div>
@@ -184,25 +209,25 @@
     <script>
         // 错误处理系统
         var errorSystem = {
-            show: function(message) {
+            show: function (message) {
                 try {
                     var container = document.querySelector('.error-container');
                     var content = document.getElementById('errorMessage');
                     content.textContent = message;
                     container.style.display = 'block';
                     setTimeout(this.hide, 5000);
-                } catch(e) {
+                } catch (e) {
                     console.error('错误提示系统异常:', e);
                 }
             },
-            hide: function() {
+            hide: function () {
                 document.querySelector('.error-container').style.display = 'none';
             }
         };
 
         // 课程配置
         var courseSchedule = [
-        { name: "第一节课", start: "08:00", end: "08:50" },
+            { name: "第一节课", start: "08:00", end: "08:50" },
             { name: "第二节课", start: "09:00", end: "09:50" },
             { name: "第三节课", start: "10:10", end: "11:00" },
             { name: "第四节课", start: "11:10", end: "12:00" },
@@ -218,55 +243,55 @@
 
         // 音频系统（兼容Android 4.4）
         // 音频系统（兼容Android 4.4）
-var audioContext = {
-    elements: [],
-    maxPool: 2,
-    init: function() {
-        try {
-            for(var i = 0; i < this.maxPool; i++) {
-                var audio = document.createElement('audio');
-                document.body.appendChild(audio);
-                this.elements.push(audio);
-            }
-        } catch(e) {
-            errorSystem.show('音频初始化失败: ' + e.message);
-        }
-    },
-    play: function(type) {
-        try {
-            var audio = this.getAvailableAudio();
-            if(!audio) return;
-            
-            audio.src = {
-                classStart: 'class_start.mp3',
-                classEnd: 'class_end.mp3'
-            }[type];
-            
-            // 异步播放防止阻塞
-            setTimeout(function() {
+        var audioContext = {
+            elements: [],
+            maxPool: 2,
+            init: function () {
                 try {
-                    audio.play().catch(function(e) {
-                        errorSystem.show('播放被阻止: ' + e.message);
-                    });
-                } catch(e) {
-                    errorSystem.show('播放错误: ' + e.message);
+                    for (var i = 0; i < this.maxPool; i++) {
+                        var audio = document.createElement('audio');
+                        document.body.appendChild(audio);
+                        this.elements.push(audio);
+                    }
+                } catch (e) {
+                    errorSystem.show('音频初始化失败: ' + e.message);
                 }
-            }, 0);
-        } catch(e) {
-            errorSystem.show('音频系统错误: ' + e.message);
-        }
-    },
-    getAvailableAudio: function() {
-        // ==== 修改开始 ====
-        for (var i = 0; i < this.elements.length; i++) {
-            if (this.elements[i].paused || this.elements[i].ended) {
-                return this.elements[i];
+            },
+            play: function (type) {
+                try {
+                    var audio = this.getAvailableAudio();
+                    if (!audio) return;
+
+                    audio.src = {
+                        classStart: 'class_start.mp3',
+                        classEnd: 'class_end.mp3'
+                    }[type];
+
+                    // 异步播放防止阻塞
+                    setTimeout(function () {
+                        try {
+                            audio.play().catch(function (e) {
+                                errorSystem.show('播放被阻止: ' + e.message);
+                            });
+                        } catch (e) {
+                            errorSystem.show('播放错误: ' + e.message);
+                        }
+                    }, 0);
+                } catch (e) {
+                    errorSystem.show('音频系统错误: ' + e.message);
+                }
+            },
+            getAvailableAudio: function () {
+                // ==== 修改开始 ====
+                for (var i = 0; i < this.elements.length; i++) {
+                    if (this.elements[i].paused || this.elements[i].ended) {
+                        return this.elements[i];
+                    }
+                }
+                return null;
+                // ==== 修改结束 ====
             }
-        }
-        return null;
-        // ==== 修改结束 ====
-    }
-};
+        };
         audioContext.init();
 
         // 全局状态
@@ -281,14 +306,14 @@ var audioContext = {
             try {
                 var now = Date.now();
                 var delta = now - lastUpdate;
-                
+
                 updateCourseStatus();
                 updateDisplay();
-                
+
                 var nextTick = Math.max(1000 - (Date.now() - now), 50);
                 timer = setTimeout(safeUpdate, nextTick);
                 lastUpdate = now;
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('更新循环错误: ' + e.message);
             }
         }
@@ -306,7 +331,7 @@ var audioContext = {
                     parseInt(parts[1]),
                     0
                 );
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('时间解析错误: ' + e.message);
                 return new Date();
             }
@@ -322,10 +347,10 @@ var audioContext = {
                     var course = courseSchedule[i];
                     var start = parseTime(course.start);
                     var end = parseTime(course.end);
-                    
+
                     // 处理跨午夜情况
                     if (end < start) end.setDate(end.getDate() + 1);
-                    
+
                     if (now >= start && now <= end) {
                         currentCourse = course;
                         break;
@@ -336,7 +361,7 @@ var audioContext = {
                     handleStatusChange();
                     lastCourse = currentCourse;
                 }
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('课程状态更新失败: ' + e.message);
             }
         }
@@ -349,7 +374,7 @@ var audioContext = {
                 } else if (currentCourse && localStorage.classBell === 'true') {
                     audioContext.play('classStart');
                 }
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('状态变化处理错误: ' + e.message);
             }
         }
@@ -382,7 +407,7 @@ var audioContext = {
                     }
                 }
                 updateScheduleTable();
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('界面更新失败: ' + e.message);
             }
         }
@@ -394,9 +419,9 @@ var audioContext = {
                 var totalSeconds = Math.floor(ms / 1000);
                 var minutes = Math.floor(totalSeconds / 60);
                 var seconds = totalSeconds % 60;
-                return (minutes < 10 ? '0' : '') + minutes + ':' + 
-                       (seconds < 10 ? '0' : '') + seconds;
-            } catch(e) {
+                return (minutes < 10 ? '0' : '') + minutes + ':' +
+                    (seconds < 10 ? '0' : '') + seconds;
+            } catch (e) {
                 return '--:--';
             }
         }
@@ -406,13 +431,13 @@ var audioContext = {
             try {
                 var now = new Date();
                 var rows = document.querySelectorAll('#scheduleTable tr:not(:first-child)');
-                
+
                 for (var i = 0; i < rows.length; i++) {
                     var course = courseSchedule[i];
                     var start = parseTime(course.start);
                     var end = parseTime(course.end);
                     var row = rows[i];
-                    
+
                     row.className = '';
                     if (now >= start && now <= end) {
                         row.className = 'current-class';
@@ -422,7 +447,7 @@ var audioContext = {
                         row.className = 'past-class';
                     }
                 }
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('课程表更新失败: ' + e.message);
             }
         }
@@ -436,7 +461,7 @@ var audioContext = {
                     if (start > now) return courseSchedule[i];
                 }
                 return null;
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('获取下一节课失败: ' + e.message);
                 return null;
             }
@@ -447,7 +472,7 @@ var audioContext = {
             try {
                 isFullscreen = !isFullscreen;
                 document.body.classList.toggle('fullscreen-mode', isFullscreen);
-                
+
                 if (isFullscreen) {
                     document.querySelector('.settings-panel').style.display = 'none';
                     document.querySelector('.schedule-table').style.display = 'none';
@@ -459,7 +484,7 @@ var audioContext = {
                     document.querySelector('.container').style.width = '';
                     document.querySelector('.container').style.height = '';
                 }
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('全屏切换失败: ' + e.message);
             }
         }
@@ -470,7 +495,7 @@ var audioContext = {
                 if (confirm('确定要测试' + (type === 'classStart' ? '上课' : '下课') + '铃声吗？')) {
                     audioContext.play(type);
                 }
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('测试铃声失败: ' + e.message);
             }
         }
@@ -480,21 +505,21 @@ var audioContext = {
             try {
                 // 初始化课程表
                 var table = document.getElementById('scheduleTable');
-                courseSchedule.forEach(function(course) {
+                courseSchedule.forEach(function (course) {
                     var row = table.insertRow(-1);
                     row.innerHTML = '<td>' + course.name + '</td>' +
-                                    '<td>' + course.start + ' - ' + course.end + '</td>' +
-                                    '<td></td>';
+                        '<td>' + course.start + ' - ' + course.end + '</td>' +
+                        '<td></td>';
                 });
 
                 // 初始化设置
                 document.getElementById('classBell').checked = localStorage.classBell === 'true';
                 document.getElementById('breakBell').checked = localStorage.breakBell === 'true';
-                
-                document.getElementById('classBell').onchange = function() {
+
+                document.getElementById('classBell').onchange = function () {
                     localStorage.classBell = this.checked;
                 };
-                document.getElementById('breakBell').onchange = function() {
+                document.getElementById('breakBell').onchange = function () {
                     localStorage.breakBell = this.checked;
                 };
 
@@ -502,28 +527,29 @@ var audioContext = {
                 safeUpdate();
 
                 // 激活音频权限
-                document.body.onclick = function() {
+                document.body.onclick = function () {
                     try {
-                        audioContext.elements[0].play().then(function() {
+                        audioContext.elements[0].play().then(function () {
                             audioContext.elements[0].pause();
                         });
-                    } catch(e) {
+                    } catch (e) {
                         errorSystem.show('需要点击页面激活音频权限');
                     }
                     this.onclick = null;
                 };
-            } catch(e) {
+            } catch (e) {
                 errorSystem.show('系统初始化失败: ' + e.message);
             }
         }
 
         // 清理定时器
-        window.onbeforeunload = function() {
-            if(timer) clearTimeout(timer);
+        window.onbeforeunload = function () {
+            if (timer) clearTimeout(timer);
         };
 
         // 启动系统
         init();
     </script>
 </body>
+
 </html>
